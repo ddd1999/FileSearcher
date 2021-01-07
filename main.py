@@ -1,4 +1,4 @@
-from os import walk, stat, listdir
+from os import walk, stat, listdir, path
 import sys
 import re
 from stat import *
@@ -19,7 +19,7 @@ class Arguments:
     max_size = sys.maxsize
 
 
-def regexify(string, ignore_case):
+def regexify(string, ignore_case=False):
     current_sequence = ''
     regex = ''
 
@@ -77,6 +77,9 @@ def save_args():
             if sys.argv[arg_index] == '-empty':
                 Arguments.find_empty_dirs = True
 
+            if sys.argv[arg_index] == '-skip_empty':
+                Arguments.find_empty_dirs = False
+
             if sys.argv[arg_index] == '-p':
                 Arguments.search_by_perm = (True, sys.argv[arg_index + 1])
 
@@ -105,6 +108,7 @@ def parse_directory():
     filtered_entries = [entry for entry in entries]
 
     for entry in entries:
+        full_path = entry[0] + '/' + entry[1]
         st = stat(entry[0])
 
         if not Arguments.min_size <= st.st_size <= Arguments.max_size:
@@ -113,6 +117,14 @@ def parse_directory():
 
         if Arguments.find_empty_dirs and not Arguments.find_dirs:
             if not listdir(entry[0]):
+                if entry in filtered_entries:
+                    filtered_entries.remove(entry)
+
+        if path.isdir(full_path):
+            if Arguments.find_dirs and not Arguments.find_empty_dirs and not listdir(full_path):
+                if entry in filtered_entries:
+                    filtered_entries.remove(entry)
+            elif not Arguments.find_dirs and Arguments.find_empty_dirs and listdir(full_path):
                 if entry in filtered_entries:
                     filtered_entries.remove(entry)
 
